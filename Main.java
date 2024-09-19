@@ -8,7 +8,7 @@ import javax.swing.JFrame;
 		JFrame window = new JFrame();
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		window.setResizable(false);
-		window.setTitle("DUngeon Quest");
+		window.setTitle("Dungeon Quest");
 		
 		GamePanel gamePanel = new GamePanel();
 		window.add(gamePanel);

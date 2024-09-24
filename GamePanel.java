@@ -1,8 +1,10 @@
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import javax.swing.JPanel;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 
 	class GamePanel extends JPanel implements Runnable
 {
@@ -24,6 +26,36 @@ import javax.swing.JPanel;
 	int playerY = 100;
 	int playerSpeed = 4;
 	
+	 private static final String[] map = {
+        "############################",
+		"#==#======#=====#==========#",
+		"#==##====####===#==========#",
+		"#===#==#=###====#==========#",
+		"#===#==#=####===#==========#",
+		"#==#==#=#####===#==========#",
+		"#==#==#==#=##D==#####=######",
+		"#===#####===#=###==========# ",
+		"#====T======#=###==========# ",
+		"#==#======#=====#==========#",
+		"#==#======#=====#==========#",
+		"#==#======#=====#==========#",
+		"#==########=====#==========#",
+		"#==#======#=====#==========#",
+		"#==#======#=====#==========#",
+		"#==#============#==========#",
+		"#==#======#=====#====#####=#",
+		"#==#======#=====#====#=====#",
+		"############################"
+	};
+
+    private static final int CELL_SIZE = 30; // Size of each cell
+    private BufferedImage wallImage;
+    private BufferedImage pathImage;
+    private BufferedImage treasureImage;
+    private BufferedImage doorImage;
+
+
+	
 	public GamePanel()
 	{
 		this.setPreferredSize(new Dimension(screenWidth,screenHeight));
@@ -32,6 +64,15 @@ import javax.swing.JPanel;
 		this.addKeyListener(keyH);
 		this.setFocusable(true);
 		this.setDoubleBuffered(true);
+		
+		try {
+            wallImage = ImageIO.read(new File("wall.png"));
+            pathImage = ImageIO.read(new File("path.jpg"));
+            treasureImage = ImageIO.read(new File("pixel.jpg"));
+            doorImage = ImageIO.read(new File("pixel.jpg"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 	}
 
 	public void startGaneThread()
@@ -104,16 +145,31 @@ import javax.swing.JPanel;
 	 
 	}
 
-	public void paintComponent(Graphics g)
-	{
-		super.paintComponent(g);
-		Graphics2D g2 = (Graphics2D)g;
-
-		// This is for displyoing our main charector
-		g2.setColor(Color.white);
-		g2.fillRect(playerX, playerY, tileSize, tileSize);
-		g2.dispose();
-
-		
-	} 
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        
+        for (int y = 0; y < map.length; y++) {
+            for (int x = 0; x < map[y].length(); x++) {
+                char cell = map[y].charAt(x);
+                switch (cell) {
+                    case '#':
+                        g.drawImage(wallImage, x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE, null);
+                        break;
+                    case '=':
+                        g.drawImage(pathImage, x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE, null);
+                        break;
+                    case 'T':
+                        g.drawImage(treasureImage, x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE, null);
+                        break;
+                    case 'D':
+                        g.drawImage(doorImage, x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE, null);
+                        break;
+                    default:
+                        
+                        break;
+                }
+            }
+        }
+    } 
 }
+	

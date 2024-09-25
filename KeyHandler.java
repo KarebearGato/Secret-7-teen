@@ -1,73 +1,85 @@
-//  This class will be used to contorl the movement of the main charector and accept key imputs
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
-public class KeyHandler implements KeyListener
-{
+public class KeyHandler implements KeyListener {
+    private int x;
+    private int y;
 
     public boolean upPressed, downPressed, leftPressed, rightPressed;
 
+
+    public void setX(int X) {
+        this.x += X;
+    }
+
+    public void setY(int Y) {
+        this.y += Y;
+    }
+
+ 
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
+
     @Override
-    public void keyPressed(KeyEvent e)
-    {
-        int code = e.getKeyCode();
+    public void keyPressed(KeyEvent e) {
+        int keyCode = e.getKeyCode();
 
-        if (code == KeyEvent.VK_UP)
-        {
-            upPressed = true;
-        }
 
-        if (code == KeyEvent.VK_DOWN)
-        {
-            downPressed = true;
-        }
-
-        if (code == KeyEvent.VK_LEFT)
-        {
-            leftPressed = true;
-        }
-
-        if (code == KeyEvent.VK_RIGHT)
-        {
-            rightPressed = true;
+        switch (keyCode) {
+            case KeyEvent.VK_UP:
+                upPressed = true;
+                setY(-5);
+                break;
+            case KeyEvent.VK_LEFT:
+                leftPressed = true;
+                setX(-5);
+                break;
+            case KeyEvent.VK_DOWN:
+                downPressed = true;
+                setY(5);
+                break;
+            case KeyEvent.VK_RIGHT:
+                rightPressed = true;
+                setX(5);
+                break;
+            case KeyEvent.VK_ESCAPE:
+                stop();
+                break;
         }
     }
 
-    //@Override
-    public void keyreleased(KeyEvent e)
-    {
-        int code = e.getKeyCode();
 
-        if (code == KeyEvent.VK_UP)
-        {
-            upPressed = false;
-        }
+    public void keyReleased(KeyEvent e) {
+        int keyCode = e.getKeyCode();
 
-        if (code == KeyEvent.VK_DOWN)
-        {
-            downPressed = false;
-        }
-
-        if (code == KeyEvent.VK_LEFT)
-        {
-            leftPressed = false;
-        }
-
-        if (code == KeyEvent.VK_RIGHT)
-        {
-            rightPressed = false;
+        switch (keyCode) {
+            case KeyEvent.VK_UP:
+                upPressed = false;
+                break;
+            case KeyEvent.VK_LEFT:
+                leftPressed = false;
+                break;
+            case KeyEvent.VK_DOWN:
+                downPressed = false;
+                break;
+            case KeyEvent.VK_RIGHT:
+                rightPressed = false;
+                break;
         }
     }
 
     @Override
     public void keyTyped(KeyEvent e) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        //
     }
 
-    @Override
-    public void keyReleased(KeyEvent e) {
-        throw new UnsupportedOperationException("Not supported yet.");
+    
+    public void stop() {
+      //
     }
-
-
 }

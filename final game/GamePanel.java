@@ -1,10 +1,9 @@
-import javax.swing.JPanel;
-import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import javax.imageio.ImageIO;
+import javax.swing.JPanel;
 
 class GamePanel extends JPanel implements Runnable {
     final int origionalTileSize = 16;
@@ -28,12 +27,12 @@ class GamePanel extends JPanel implements Runnable {
 
     private static final String[] map = {
         "############################",
-        "#==================#=======#",
-        "#===================#======#",
-        "#===================#======#",
+        "#====#=====================#",
+        "#====#=====================#",
+        "#====#=====================#",
         "#==========================#",
-        "#===================########",
         "#==========================#",
+        "#####======================#",
         "#==========================#",
         "#==========================#",
         "#==========================#",
@@ -86,7 +85,8 @@ class GamePanel extends JPanel implements Runnable {
         double drawInterval = 1000000000 / FPS;
         double nextDrawTime = System.nanoTime() + drawInterval;
 
-        while (gameThread != null) {
+        while (gameThread != null) 
+        {
             long currentTime = System.nanoTime();
             update(); 
             repaint(); 
@@ -107,9 +107,34 @@ class GamePanel extends JPanel implements Runnable {
         }
     }
 
-    public void update() {
+    public void update() 
+    {
+
 		int newpx=playerX, newpy=playerY;
+
+        int ix = 0;
+        int iy = 0;
 		
+        if (keyH.leftPressed)
+        {
+            ix += 1;
+        }
+
+        if (keyH.upPressed)
+        {
+            iy += 1;
+        }
+
+
+        if (ix == iy)
+        {
+            newpx  += 0;
+            newpy  += 0;
+        }
+
+        
+
+
         if (keyH.upPressed) {
             newpy -= playerSpeed;
         }
@@ -123,24 +148,54 @@ class GamePanel extends JPanel implements Runnable {
             newpx += playerSpeed;
         }
 		
-		if(collide(newpx, newpy)){
+		if(collide(newpx, newpy))
+        {
 			playerX=newpx;
 			playerY=newpy;
 		}
     }
 	
-	 private boolean collide(int x, int y) {
+	 private boolean collide(int x, int y) 
+     {
         int mapX = x / CELL_SIZE;
         int mapY = y / CELL_SIZE;
 
-        
-        if (mapX < 0 || mapX >= map[0].length() || mapY < 0 || mapY >= map.length) {
+        // code modified here
+
+        if (mapX < 0 || mapX > map[0].length() || mapY < 0 || mapY > map.length ) 
+        {
             return false;
         }
 
         
-        return map[mapY].charAt(mapX) != '#';
+        if (keyH.upPressed && keyH.leftPressed) {
+            return (map[mapY].charAt(mapX) != '#') && (map[mapY].charAt(mapX) != '#');
+        }else if (keyH.upPressed && keyH.rightPressed) {
+            return (map[mapY].charAt(mapX) != '#') && (map[mapY].charAt(mapX+1) != '#');
+        }else if (keyH.downPressed && keyH.leftPressed) {
+            return (map[mapY+1].charAt(mapX) != '#') && (map[mapY].charAt(mapX) != '#');
+        }else if(keyH.downPressed && keyH.rightPressed)
+        {
+            return map[mapY+1].charAt(mapX) != '#' && (map[mapY].charAt(mapX+1) != '#');
+        }else if(keyH.upPressed){
+            return map[mapY].charAt(mapX) != '#';
+        }else if (keyH.downPressed) 
+        {
+            return map[mapY+1].charAt(mapX) != '#';
+        }
+
+        if(keyH.leftPressed)
+        {
+            return map[mapY].charAt(mapX) != '#';
+        }else if (keyH.rightPressed) 
+        {
+            return map[mapY].charAt(mapX+1) != '#';
+        }
+        return map[mapY+1].charAt(mapX) != '#'; 
     }
+
+
+    
 
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);

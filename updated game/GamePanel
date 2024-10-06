@@ -1,0 +1,240 @@
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import javax.imageio.ImageIO;
+import javax.swing.JPanel;
+
+class GamePanel extends JPanel implements Runnable {
+    final int originalTileSize = 16;                //Original tile size
+    final int scale = 3;                            //Scaling factor
+    final int tileSize = originalTileSize*scale;    //Scaled tile size
+    final int maxScreenCol = 50;                    //Maximum number of columns on screen
+    final int maxScreenRow = 50;                    //Maximum number of rows on screen
+    final int screenWidth = tileSize*maxScreenCol;      //Screen width
+    final int screenHeight = tileSize * maxScreenRow;   //Screen height based on tile size
+    int FPS = 60;                                       //Frames per second
+    KeyHandler keyH = new KeyHandler();                 //keyH for keyhandling for user input
+    Thread gameThread;                                  //Thread for the game loop
+    private PlayerAnimation player;
+    private BufferedImage spritesheet;
+    private String selectedCharacter;
+    private BufferedImage playerSprite;
+
+    //Set player's default position and speed
+    int playerX = 80;
+    int playerY = 100;
+    int playerSpeed = 4;
+	
+    //Sets cell dimensions for the players sprite
+	int cellWidth = 30;
+	int cellHeight = 24;
+
+    private static final int CELL_SIZE = 30; //Constant for cell size
+
+    public enum CellType{
+        WALL('#'),
+        PATH('='),
+        TREASURE('T'),
+        DOOR('D'),
+        EMPTY(' ');    //For cells without specific content(not listed)
+
+        private final char symbol;
+
+        CellType(char symbol){
+            this.symbol =  symbol;
+        }//enum constructor
+
+        public char getSymbol(){
+            return this.symbol;
+        }//Getter method
+
+        public static CellType fromSymbol(char symbol){
+            for (CellType type: CellType.values()){
+                if(type.getSymbol() == symbol){
+                    return type;
+                }
+            }
+            return EMPTY;
+        }//Method to get the cell type for the character symbol
+    }
+
+    private static final CellType[][] map = {
+        {CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.PATH, CellType.WALL},
+        {CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL, CellType.WALL},
+    };
+
+    // BufferedImages for different map and player elements
+    private BufferedImage wallImage;
+    private BufferedImage pathImage;
+    private BufferedImage treasureImage;
+    private BufferedImage doorImage;
+
+    public GamePanel(String selectedCharacter){
+        this.selectedCharacter = selectedCharacter;
+        loadCharacterSprite(selectedCharacter);
+        this.setPreferredSize(new Dimension(screenWidth, screenHeight));
+        this.setBackground(Color.black);    //Setting the background colour to black
+        this.setDoubleBuffered(true);
+        this.addKeyListener(keyH);          //Adding key listener for the user input
+        this.setFocusable(true);  //Setting panel focusable for key events
+        //Loading the images from files
+        try{
+            wallImage = ImageIO.read(new File("wall.png"));
+            pathImage = ImageIO.read(new File("path.jpg"));
+            treasureImage = ImageIO.read(new File("pixel.jpg"));
+            doorImage = ImageIO.read(new File("pixel.jpg"));
+        }catch (IOException e){
+            e.printStackTrace(); //Error handling for image loading
+        }
+
+    }//Constructor
+
+    private void loadCharacterSprite(String character){
+        try{
+            switch(character){
+                case "Aang":
+                    playerSprite = ImageIO.read(new File("Aang.png"));
+                    break;
+                case "Katara":
+                    playerSprite = ImageIO.read(new File("Katara.png"));
+                    break;
+                case "Toph":
+                    playerSprite = ImageIO.read(new File("Toph.png"));
+                    break;
+                case "Zuko":
+                    playerSprite = ImageIO.read(new File("Zuko.png"));
+                    break;
+                default:
+                    System.out.print("Please choose one of the listeed charCters");
+                    break;
+                }
+            }catch (IOException e){
+                e.printStackTrace();
+         }
+        player = new PlayerAnimation();
+        int frameWidth = 32;
+        int frameHeight = 32;
+        int frameDuration = 100;
+ 
+        for(int i = 0; i < 4; i++){
+            player.addScene(playerSprite, frameWidth, frameHeight, i, frameDuration);
+        }
+    }
+    
+    public void startGameThread() {
+        gameThread = new Thread(this);
+        gameThread.start();
+    }// Method to start the game thread
+
+    @Override
+    public void run(){
+        double drawInterval = 1000000000/FPS; //Interval between frames
+        double nextDrawTime = System.nanoTime() + drawInterval;
+
+        while(gameThread != null){
+            long currentTime = System.nanoTime();
+            update(); //Updates the game state
+            repaint(); //Redraw screen
+
+            try{
+                double remTime = nextDrawTime - System.nanoTime();
+                remTime = remTime/1000000; //Converts to milliseconds
+
+                if(remTime < 0){
+                    remTime = 0;
+                }
+
+                Thread.sleep((long) remTime); //Sleep thread to maintain FPS
+                nextDrawTime += drawInterval; //Calculate next frame time
+            }catch (InterruptedException e){
+                e.printStackTrace();
+            }
+        }
+    }//Game loop run method
+    
+    public void update(){
+        //Sets new player position based on key inputs
+        int newpx = playerX;
+        int newpy = playerY;
+
+        if (keyH.upPressed){
+            newpy -= playerSpeed;
+        }else if (keyH.downPressed){
+            newpy += playerSpeed;
+        }else if (keyH.leftPressed){
+            newpx -= playerSpeed;
+        }else if (keyH.rightPressed){
+            newpx += playerSpeed;
+        }
+
+        //Checks collision boundaries with map
+        if(collide(newpx, newpy)){
+            playerX = newpx;
+            playerY = newpy;
+        }
+
+        long timePassed = 1000/FPS;
+        player.update(timePassed);
+    }//Method to update game state
+
+    private boolean collide(int x, int y){
+        int mapX = x/CELL_SIZE;
+        int mapY = y/CELL_SIZE;
+
+        //Check if the new position is within map boundaries
+        if (mapX < 0 || mapX >= map[0].length || mapY < 0 || mapY >= map.length) {
+            return false;
+        }
+        return map[mapY][mapX] != CellType.WALL;
+    }//Method to chech collisions with map
+
+    protected void paintComponent(Graphics g){
+        super.paintComponent(g);
+
+        for(int y = 0; y < map.length; y++){
+            for(int x = 0; x < map[y].length; x++){
+                CellType type = map[y][x];
+                switch(type){
+                    case WALL:
+                        g.drawImage(wallImage, x*CELL_SIZE,  y*CELL_SIZE, CELL_SIZE, CELL_SIZE, null);
+                        break;
+                    case PATH:
+                        g.drawImage(pathImage, x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE, null);
+                        break;
+                    case TREASURE:
+                        g.drawImage(treasureImage, x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE, null);
+                        break;
+                    case DOOR:
+                        g.drawImage(doorImage, x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE, null);
+                        break;
+                    //To handle other cell types
+                    default:
+                        break;
+                }
+            }
+            Image currentFrame = player.getCurrentImage();
+            g.drawImage(currentFrame, playerX, playerY, null); 
+        }
+        // Draw the player
+        g.drawImage(playerSprite, playerX, playerY, CELL_SIZE, CELL_SIZE, null);
+    }
+}//Method to paint graphic on panel
+    
